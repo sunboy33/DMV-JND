@@ -7,6 +7,8 @@ from datasets import get_dataloader
 
 
 def train(net,dataloader,loss_fn,optimizer,net_type,device,total_epochs):
+    if not os.path.exists("ckpts"):
+        os.mkdir("ckpts")
     train_samples = len(dataloader["train"].dataset)
     val_samples = len(dataloader["val"].dataset)
     tds = len(dataloader["train"])
