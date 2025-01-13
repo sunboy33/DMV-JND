@@ -61,6 +61,7 @@ def main():
     total_epochs = 3
     for net_type in net_types:
         net = get_net(net_type,num_classes)
+        net.to(device)
         optimizer = torch.optim.SGD(net.parameters(),lr=0.001,weight_decay=1e-4,momentum=0.9)
         train(net,dataloader,loss_fn,optimizer,net_type,device,total_epochs)
 
