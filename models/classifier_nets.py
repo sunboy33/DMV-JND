@@ -7,7 +7,7 @@ import torch
 class AlexNet(nn.Module):
     def __init__(self, nums_classes):
         super().__init__()
-        self.features = nn.Sequential(*list(models.alexnet(pretrained=True).features.children())[:-1])
+        self.features = nn.Sequential(*list(models.alexnet(weights=models.AlexNet_Weights.IMAGENET1K_V1).features.children())[:-1])
         self.classifier = nn.Sequential(
             nn.Dropout(),
             nn.Linear(256, nums_classes))
@@ -21,7 +21,7 @@ class AlexNet(nn.Module):
 class VGG16(nn.Module):
     def __init__(self, nums_classes):
         super().__init__()
-        self.features = nn.Sequential(*list(models.vgg16(pretrained=True).features.children())[:-1])
+        self.features = nn.Sequential(*list(models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).features.children())[:-1])
         self.classifier = nn.Sequential(
             nn.Dropout(),
             nn.Linear(512, nums_classes))
@@ -35,7 +35,7 @@ class VGG16(nn.Module):
 class ResNet50(nn.Module):
     def __init__(self, nums_classes):
         super().__init__()
-        self.features = nn.Sequential(*list(models.resnet50(pretrained=True).children())[:-3])
+        self.features = nn.Sequential(*list(models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1).children())[:-3])
         self.classifier = nn.Sequential(
             nn.Dropout(),
             nn.Linear(1024, nums_classes))
@@ -49,7 +49,7 @@ class ResNet50(nn.Module):
 class DenseNet169(nn.Module):
     def __init__(self, nums_classes):
         super().__init__()
-        self.features = nn.Sequential(*list(models.densenet169(pretrained=True).features.children())[:-3])
+        self.features = nn.Sequential(*list(models.densenet169(weights=models.DenseNet169_Weights.IMAGENET1K_V1).features.children())[:-3])
         self.classifier = nn.Sequential(
             nn.Dropout(),
             nn.Linear(1280, nums_classes))
