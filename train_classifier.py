@@ -55,7 +55,8 @@ def main():
     num_classes = 10
     dataloader = get_dataloader(batch_size=64)
     loss_fn = torch.nn.CrossEntropyLoss()
-    net_types = ["alexnet-GAP","vgg16-GAP","resnet50-GAP","densenet169-GAP"]
+    # net_types = ["alexnet-GAP","vgg16-GAP","resnet50-GAP","densenet169-GAP"]
+    net_types = ["resnet50-GAP","densenet169-GAP"]
     total_epochs = 50
     for net_type in net_types:
         net = get_net(net_type,num_classes)
