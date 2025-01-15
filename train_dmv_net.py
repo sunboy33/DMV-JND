@@ -24,6 +24,7 @@ def get_parser():
     parser.add_argument('--total_epochs',type=int,default=200)
     parser.add_argument('--net_types',type=str,nargs='*',default="alexnet-GAP")
     parser.add_argument('--n',type=int,default=16)
+    parser.add_argument('--vis',type=bool,default=True)
     return parser.parse_args()
 
 args = get_parser()
@@ -126,11 +127,12 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,total_epochs):
             l3 += loss3.item()
             loss.backward()
             optimizer.step()
-        psnr = cal_psnr(net,classifier_nets,dataloader["train"],device)
-        rca = cal_rca(net,classifier_nets,dataloader["train"],device)
+        # psnr = cal_psnr(net,classifier_nets,dataloader["train"],device)
+        # rca = cal_rca(net,classifier_nets,dataloader["train"],device)
         print(f"[Epoch{epoch}/{total_epochs}][loss:{l/n:.3f} loss1:{l1/n:.3f} loss2:{l2/n:.3f} loss3:{l3/n:.3f} psnr:{psnr:.3f} RCA:{rca:.3f}]")
-        if epoch in [1,15,45,145]:
-            visualization(x,x_hat,e,c,epoch,args.n)
+        if args.vis:
+            if epoch in [1,2,3,15,45,145]:
+                visualization(x,x_hat,e,c,epoch,args.n)
         if epoch % 10 == 0:
             torch.save(net,"dmv-jnd-{epoch}.pth")
 
