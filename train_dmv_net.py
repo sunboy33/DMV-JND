@@ -48,11 +48,11 @@ def visualization(x,x_hat,e,c,epoch):
     if not os.path.exists(save_path):
         os.mkdir(save_path)
     with torch.no_grad():
-        x_grid = Image.fromarray((make_grid(denormalize(x[:16])).numpy()*255).astype(np.uint8)).save(f"{save_path}/x_{epoch}.png")
-        x_hat_grid = Image.fromarray((make_grid(denormalize(x_hat[:16])).numpy()*255).astype(np.uint8)).save(f"{save_path}/x_hat_{epoch}.png")
+        Image.fromarray((make_grid(denormalize(x[:16].cpu())).numpy()*255).astype(np.uint8)).save(f"{save_path}/x_{epoch}.png")
+        Image.fromarray((make_grid(denormalize(x_hat[:16].cpu())).numpy()*255).astype(np.uint8)).save(f"{save_path}/x_hat_{epoch}.png")
         e = torch.abs(e)
-        e_grid = Image.fromarray((make_grid(denormalize(e[:16])).numpy()*255).astype(np.uint8)).save(f"{save_path}/e_{epoch}.png")
-        c_grid = Image.fromarray((make_grid(denormalize(c[:16])).numpy()*255).astype(np.uint8)).save(f"{save_path}/c_{epoch}.png")
+        Image.fromarray((make_grid(denormalize(e[:16].cpu())).numpy()*255).astype(np.uint8)).save(f"{save_path}/e_{epoch}.png")
+        Image.fromarray((make_grid(denormalize(c[:16].cpu())).numpy()*255).astype(np.uint8)).save(f"{save_path}/c_{epoch}.png")
 
 
 def cal_psnr(net,classifier_nets,dataloader,device):
@@ -75,7 +75,7 @@ def cal_rca(net,classifier_nets,dataloader,device):
     rca = []
     with torch.no_grad():
         for net_type in classifier_nets.keys():
-            c = 0
+            count = 0
             classifier_net = classifier_nets[net_type]
             for (x, _) in dataloader:
                 x = x.to(device)
@@ -84,8 +84,8 @@ def cal_rca(net,classifier_nets,dataloader,device):
                 x_hat = torch.clamp(x+e, min=-1.0, max=1.0)
                 Ln = classifier_net(x).argmax(dim=1)
                 Ln_hat = classifier_net(x_hat).argmax(dim=1)
-                c += (Ln==Ln_hat).sum().item()
-            rca.append(c / n_sample)
+                count += (Ln==Ln_hat).sum().item()
+            rca.append(count / n_sample)
     return sum(rca) / len(rca)
            
 
@@ -114,7 +114,7 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,total_epochs):
             optimizer.step()
         psnr = cal_psnr(net,classifier_nets,dataloader["train"],device)
         rca = cal_rca(net,classifier_nets,dataloader["train"],device)
-        print(f"[Epoch{epoch}/{total_epochs}][loss:{l/n} loss1:{l1/n} loss2:{l2/n} loss3:{l3/n} psnr:{psnr} RCA:{rca}]")
+        print(f"[Epoch{epoch}/{total_epochs}][loss:{l/n:.3f} loss1:{l1/n:.3f} loss2:{l2/n:.3f} loss3:{l3/n:.3f} psnr:{psnr:.3f} RCA:{rca:.3f}]")
         if epoch in [1,15,45,145]:
             visualization(x,x_hat,e,c,epoch)
         if epoch % 10 == 0:
