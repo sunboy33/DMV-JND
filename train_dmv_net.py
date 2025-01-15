@@ -112,7 +112,7 @@ def cal_rca(net,classifier_nets,dataloader,device):
 def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,start_epoch,total_epochs):
     file_path = "metric.xlsx"
     try:
-        wb = openpyxl.load_workbook()
+        wb = openpyxl.load_workbook(file_path)
         sheet = wb.active
     except FileNotFoundError:
         wb = openpyxl.Workbook()
