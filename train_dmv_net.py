@@ -24,7 +24,6 @@ def get_parser():
     parser.add_argument('--weight_decay',type=float,default=1e-3)
     parser.add_argument('--total_epochs',type=int,default=200)
     parser.add_argument('--net_types',type=str,nargs='*',default="alexnet-GAP")
-    parser.add_argument('--n',type=int,default=16)
     return parser.parse_args()
 
 args = get_parser()
@@ -57,13 +56,13 @@ def denormalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     denormalized = tensor * std_tensor + mean_tensor
     return denormalized
 
-def visualization(x,x_hat,e,c,epoch,n):
+def visualization(x,x_hat,e,c,epoch):
     def save(tensor,epoch,type):
         if type == "c":
-            tensor_grid = make_grid(tensor[:n].cpu()).numpy()
+            tensor_grid = make_grid(tensor[:16].cpu()).numpy()
             Image.fromarray(np.array(tensor_grid[0] * 255,dtype=np.uint8)).save(f"{save_path}/{epoch}_{type}.png")
         else:
-            tensor_grid = make_grid(denormalize(tensor[:n].cpu())).numpy()
+            tensor_grid = make_grid(denormalize(tensor[:16].cpu())).numpy()
             Image.fromarray(np.array(tensor_grid.transpose(1, 2, 0) * 255,dtype=np.uint8)).save(f"{save_path}/{epoch}_{type}.png")
     save_path = "temp"
     if not os.path.exists(save_path):
@@ -141,7 +140,7 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,start_epoch,to
         sheet.append([epoch, l/n, l1/n, l2/n, l3/n, psnr, rca])
         wb.save(file_path)
         if epoch in [1,2,3,15,45,145]:
-            visualization(x,x_hat,e,c,epoch,args.n)
+            visualization(x,x_hat,e,c,epoch)
         torch.save(net,f"ckpts/dmv-jnd-{epoch}.pth")
         if os.path.exists(f"ckpts/dmv-jnd-{epoch-1}.pth"):
             os.remove(f"ckpts/dmv-jnd-{epoch-1}.pth")
