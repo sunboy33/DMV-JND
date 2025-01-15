@@ -129,8 +129,8 @@ def main():
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     classifier_nets = {}
     net_path = "ckpts"
-    # net_types = ["alexnet-GAP","vgg16-GAP","resnet50-GAP","densenet169-GAP"]
-    net_types = ["alexnet-GAP"]
+    net_types = ["alexnet-GAP","vgg16-GAP","resnet50-GAP","densenet169-GAP"]
+    # net_types = ["alexnet-GAP"]
     nets = os.listdir(net_path)
     for net_type in net_types:
         model_name = [n for n in nets if n.startswith(net_type)][0]
