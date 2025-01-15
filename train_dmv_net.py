@@ -44,15 +44,19 @@ def denormalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     return denormalized
 
 def visualization(x,x_hat,e,c,epoch):
+    def save(tensor,epoch,type):
+        tensor_grid = make_grid(denormalize(tensor[:16].cpu())).numpy()
+        Image.fromarray(np.array(tensor_grid * 255,dtype=np.uint8)).save(f"{save_path}/{epoch}_{type}.png")
     save_path = "temp"
     if not os.path.exists(save_path):
         os.mkdir(save_path)
     with torch.no_grad():
-        Image.fromarray((make_grid(denormalize(x[:16].cpu())).numpy()*255).astype(np.uint8)).save(f"{save_path}/x_{epoch}.png")
-        Image.fromarray((make_grid(denormalize(x_hat[:16].cpu())).numpy()*255).astype(np.uint8)).save(f"{save_path}/x_hat_{epoch}.png")
+        save(x,epoch,"x")
+        save(x_hat,epoch,"x_hat")
         e = torch.abs(e)
-        Image.fromarray((make_grid(denormalize(e[:16].cpu())).numpy()*255).astype(np.uint8)).save(f"{save_path}/e_{epoch}.png")
-        Image.fromarray((make_grid(denormalize(c[:16].cpu())).numpy()*255).astype(np.uint8)).save(f"{save_path}/c_{epoch}.png")
+        save(e,epoch,"e")
+        save(c,epoch,"c")
+        
 
 
 def cal_psnr(net,classifier_nets,dataloader,device):
