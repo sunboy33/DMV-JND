@@ -50,4 +50,4 @@ class Loss(nn.Module):
         loss2 = self.loss2(c,e)
         loss3 = self.loss3(c,e)
         loss = loss1 + alpha * loss2 + beta * loss3
-        return loss
+        return loss,loss1,loss2,loss3
