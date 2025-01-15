@@ -2,6 +2,7 @@ import os
 import random
 import argparse
 import numpy as np
+import openpyxl
 import torch
 import torch.nn.functional
 from torchvision import transforms
@@ -24,7 +25,6 @@ def get_parser():
     parser.add_argument('--total_epochs',type=int,default=200)
     parser.add_argument('--net_types',type=str,nargs='*',default="alexnet-GAP")
     parser.add_argument('--n',type=int,default=16)
-    parser.add_argument('--vis',type=bool,default=True)
     return parser.parse_args()
 
 args = get_parser()
@@ -109,9 +109,17 @@ def cal_rca(net,classifier_nets,dataloader,device):
     return sum(rca) / len(rca)
            
 
-def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,total_epochs):
+def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,start_epoch,total_epochs):
+    file_path = "metric.xlsx"
+    try:
+        wb = openpyxl.load_workbook()
+        sheet = wb.active
+    except FileNotFoundError:
+        wb = openpyxl.Workbook()
+        sheet = wb.active
+        sheet.append(['epoch', 'loss',"loss1","loss2","loss3","PSNR","RCA"])  # 添加表头
     n = len(dataloader["train"])
-    for epoch in range(1,total_epochs+1):
+    for epoch in range(start_epoch,total_epochs+1):
         net.train()
         l,l1,l2,l3 = 0.0,0.0,0.0,0.0
         for (x, _) in tqdm(dataloader["train"]):
@@ -127,14 +135,16 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,total_epochs):
             l3 += loss3.item()
             loss.backward()
             optimizer.step()
-        # psnr = cal_psnr(net,classifier_nets,dataloader["train"],device)
-        # rca = cal_rca(net,classifier_nets,dataloader["train"],device)
+        psnr = cal_psnr(net,classifier_nets,dataloader["train"],device)
+        rca = cal_rca(net,classifier_nets,dataloader["train"],device)
         print(f"[Epoch{epoch}/{total_epochs}][loss:{l/n:.3f} loss1:{l1/n:.3f} loss2:{l2/n:.3f} loss3:{l3/n:.3f} psnr:{psnr:.3f} RCA:{rca:.3f}]")
-        if args.vis:
-            if epoch in [1,2,3,15,45,145]:
-                visualization(x,x_hat,e,c,epoch,args.n)
-        if epoch % 10 == 0:
-            torch.save(net,"dmv-jnd-{epoch}.pth")
+        sheet.append([epoch, l/n, l1/n, l2/n, l3/n, psnr, rca])
+        wb.save(file_path)
+        if epoch in [1,2,3,15,45,145]:
+            visualization(x,x_hat,e,c,epoch,args.n)
+        torch.save(net,"ckpts/dmv-jnd-{epoch}.pth")
+        if os.path.exists(f"ckpts/dmv-jnd-{epoch-1}.pth"):
+            os.remove(f"ckpts/dmv-jnd-{epoch-1}.pth")
 
 
 def set_seed(seed):
@@ -149,13 +159,17 @@ def worker_init_fn(worker_id):
     np.random.seed(args.seed + worker_id)
     random.seed(args.seed + worker_id)
 
+def find_file_with_prefix(directory, prefix):
+    for filename in os.listdir(directory):
+        if filename.startswith(prefix):
+            return filename
+    return None
+
 def main():
-    
     set_seed(args.seed)
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     classifier_nets = {}
     net_path = "ckpts"
-    # net_types = ["alexnet-GAP","vgg16-GAP","resnet50-GAP","densenet169-GAP"]
     nets = os.listdir(net_path)
     for net_type in args.net_types:
         model_name = [n for n in nets if n.startswith(net_type)][0]
@@ -163,12 +177,20 @@ def main():
         net.eval()
         net.to(device)
         classifier_nets[net_type] = net
-    net = JNDNet()
+    filename = find_file_with_prefix(net_path,"dmv-jnd")
+    if filename is None:
+        start_epoch = 1
+        print("pretrained model not find!")
+        net = JNDNet()
+    else:
+        start_epoch = int(filename.split("-")[-1].split(".")[0]) + 1
+        print(f"pretrained model exists, start epoch with {start_epoch}")
+        net = torch.load(f=f"{net_path}/{filename}",map_location="cpu")
     net.to(device)
     loss_fn = Loss()
     optimizer = torch.optim.Adam(net.parameters(),lr=args.lr,weight_decay=args.weight_decay)
     dataloader = get_dataloader(batch_size=args.batch_size,num_workers=args.num_workers,task="dmv-jnd",worker_init_fn=worker_init_fn)
-    train(net,classifier_nets,dataloader,loss_fn,optimizer,device,args.total_epochs)
+    train(net,classifier_nets,dataloader,loss_fn,optimizer,device,start_epoch,args.total_epochs)
     
 
 if __name__== "__main__":
