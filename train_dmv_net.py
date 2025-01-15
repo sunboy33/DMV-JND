@@ -142,7 +142,7 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,start_epoch,to
         wb.save(file_path)
         if epoch in [1,2,3,15,45,145]:
             visualization(x,x_hat,e,c,epoch,args.n)
-        torch.save(net,"ckpts/dmv-jnd-{epoch}.pth")
+        torch.save(net,f"ckpts/dmv-jnd-{epoch}.pth")
         if os.path.exists(f"ckpts/dmv-jnd-{epoch-1}.pth"):
             os.remove(f"ckpts/dmv-jnd-{epoch-1}.pth")
 
