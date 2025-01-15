@@ -131,6 +131,7 @@ def main():
         net.to(device)
         classifier_nets[net_type] = net
     net = JNDNet()
+    net.to(device)
     loss_fn = Loss()
     optimizer = torch.optim.Adam(net.parameters(),lr=1e-4,weight_decay=1e-3)
     dataloader = get_dataloader(batch_size=64,task="dmv-jnd")
