@@ -1,15 +1,14 @@
 import os
 import random
+import argparse
+import numpy as np
+import torch
 import torch.nn.functional
 from torchvision import transforms
-import torch
 from torchvision.utils import make_grid
 from tqdm import tqdm
-import numpy as np
 from skimage.metrics import peak_signal_noise_ratio
 from PIL import Image
-import argparse
-
 from models import JNDNet
 from loss import Loss
 from datasets import get_dataloader
@@ -24,6 +23,7 @@ def get_parser():
     parser.add_argument('--weight_decay',type=float,default=1e-3)
     parser.add_argument('--total_epochs',type=int,default=200)
     parser.add_argument('--net_types',type=str,nargs='*',default="alexnet-GAP")
+    parser.add_argument('--n',type=int,default=16)
     return parser.parse_args()
 
 args = get_parser()
@@ -56,13 +56,13 @@ def denormalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     denormalized = tensor * std_tensor + mean_tensor
     return denormalized
 
-def visualization(x,x_hat,e,c,epoch):
+def visualization(x,x_hat,e,c,epoch,n):
     def save(tensor,epoch,type):
         if type == "c":
-            tensor_grid = make_grid(tensor[:16].cpu()).numpy()
+            tensor_grid = make_grid(tensor[:n].cpu()).numpy()
             Image.fromarray(np.array(tensor_grid[0] * 255,dtype=np.uint8)).save(f"{save_path}/{epoch}_{type}.png")
         else:
-            tensor_grid = make_grid(denormalize(tensor[:16].cpu())).numpy()
+            tensor_grid = make_grid(denormalize(tensor[:n].cpu())).numpy()
             Image.fromarray(np.array(tensor_grid.transpose(1, 2, 0) * 255,dtype=np.uint8)).save(f"{save_path}/{epoch}_{type}.png")
     save_path = "temp"
     if not os.path.exists(save_path):
@@ -130,7 +130,7 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,total_epochs):
         rca = cal_rca(net,classifier_nets,dataloader["train"],device)
         print(f"[Epoch{epoch}/{total_epochs}][loss:{l/n:.3f} loss1:{l1/n:.3f} loss2:{l2/n:.3f} loss3:{l3/n:.3f} psnr:{psnr:.3f} RCA:{rca:.3f}]")
         if epoch in [1,15,45,145]:
-            visualization(x,x_hat,e,c,epoch)
+            visualization(x,x_hat,e,c,epoch,args.n)
         if epoch % 10 == 0:
             torch.save(net,"dmv-jnd-{epoch}.pth")
 
