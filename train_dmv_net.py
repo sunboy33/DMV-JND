@@ -102,6 +102,7 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,total_epochs):
             optimizer.zero_grad()
             print("x.shape:",x.shape)
             print("e.shape:",e.shape)
+            print("c.shape:",c.shape)
             print("x_hat.shape:",x_hat.shape)
             print("classifier_nets:",classifier_nets)
             loss,loss1,loss2,loss3 = loss_fn(x,x_hat,c,e,classifier_nets)
