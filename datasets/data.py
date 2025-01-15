@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 
 
 
-def get_dataloader(batch_size,num_workers,task):
+def get_dataloader(batch_size,num_workers,task,worker_init_fn):
     if task == "classify":
 
         transform = transforms.Compose([transforms.RandomHorizontalFlip(),
@@ -26,7 +26,7 @@ def get_dataloader(batch_size,num_workers,task):
 
     t_dataset = CIFAR10(root="datasets",train=True,transform=transform,download=True)
     v_dataset = CIFAR10(root="datasets",train=False,transform=transform,download=True)
-    td = DataLoader(t_dataset,shuffle=True,batch_size=batch_size,num_workers=num_workers)
-    vd = DataLoader(v_dataset,shuffle=False,batch_size=batch_size,num_workers=num_workers)
+    td = DataLoader(t_dataset,shuffle=True,batch_size=batch_size,num_workers=num_workers,worker_init_fn=worker_init_fn)
+    vd = DataLoader(v_dataset,shuffle=False,batch_size=batch_size,num_workers=num_workers,worker_init_fn=worker_init_fn)
     return {"train":td,"val":vd}
 

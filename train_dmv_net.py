@@ -1,5 +1,5 @@
 import os
-
+import random
 import torch.nn.functional
 from torchvision import transforms
 import torch
@@ -17,14 +17,16 @@ from datasets import get_dataloader
 
 def get_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--lr',type=float,default=1e-5,help="")
-    parser.add_argument('--batch_size',type=int,help="")
-    parser.add_argument('--num_workers',type=int,default=2,help="")
-    parser.add_argument('--weight_decay',type=float,default=1e-3,help="")
-    parser.add_argument('--total_epochs',type=int,default=200,help="")
-    parser.add_argument('--net_types',type=list,default=["alexnet-GAP","vgg16-GAP","resnet50-GAP","densenet169-GAP"],help="")
+    parser.add_argument('--seed',type=int,default=42)
+    parser.add_argument('--lr',type=float,default=1e-5)
+    parser.add_argument('--batch_size',type=int)
+    parser.add_argument('--num_workers',type=int,default=2)
+    parser.add_argument('--weight_decay',type=float,default=1e-3)
+    parser.add_argument('--total_epochs',type=int,default=200)
+    parser.add_argument('--net_types',type=str,nargs='*',default="alexnet-GAP")
     return parser.parse_args()
 
+args = get_parser()
 
 def get_cam(x,classifier_nets,device):
     x = transforms.Resize((224,224))(x)
@@ -133,9 +135,21 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,total_epochs):
             torch.save(net,"dmv-jnd-{epoch}.pth")
 
 
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+def worker_init_fn(worker_id):
+    np.random.seed(args.seed + worker_id)
+    random.seed(args.seed + worker_id)
 
 def main():
-    args = get_parser()
+    
+    set_seed(args.seed)
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     classifier_nets = {}
     net_path = "ckpts"
@@ -151,7 +165,7 @@ def main():
     net.to(device)
     loss_fn = Loss()
     optimizer = torch.optim.Adam(net.parameters(),lr=args.lr,weight_decay=args.weight_decay)
-    dataloader = get_dataloader(batch_size=args.batch_size,num_workers=args.num_workers,task="dmv-jnd")
+    dataloader = get_dataloader(batch_size=args.batch_size,num_workers=args.num_workers,task="dmv-jnd",worker_init_fn=worker_init_fn)
     train(net,classifier_nets,dataloader,loss_fn,optimizer,device,args.total_epochs)
     
 
