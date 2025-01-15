@@ -45,8 +45,12 @@ def denormalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
 
 def visualization(x,x_hat,e,c,epoch):
     def save(tensor,epoch,type):
-        tensor_grid = make_grid(denormalize(tensor[:16].cpu())).numpy()
-        Image.fromarray(np.array(tensor_grid.transpose(1, 2, 0) * 255,dtype=np.uint8)).save(f"{save_path}/{epoch}_{type}.png")
+        if type == "c":
+            tensor_grid = make_grid(denormalize(tensor[:16].cpu()),pad_value=255).numpy()
+            Image.fromarray(np.array(tensor_grid[0] * 255,dtype=np.uint8)).save(f"{save_path}/{epoch}_{type}.png")
+        else:
+            tensor_grid = make_grid(denormalize(tensor[:16].cpu())).numpy()
+            Image.fromarray(np.array(tensor_grid.transpose(1, 2, 0) * 255,dtype=np.uint8)).save(f"{save_path}/{epoch}_{type}.png")
     save_path = "temp"
     if not os.path.exists(save_path):
         os.mkdir(save_path)
@@ -104,11 +108,6 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,total_epochs):
             e = net(x,c)
             x_hat = torch.clamp(x+e, min=-1.0, max=1.0)
             optimizer.zero_grad()
-            # print("x.shape:",x.shape)
-            # print("e.shape:",e.shape)
-            # print("c.shape:",c.shape)
-            # print("x_hat.shape:",x_hat.shape)
-            # print("classifier_nets:",classifier_nets)
             loss,loss1,loss2,loss3 = loss_fn(x,x_hat,c,e,classifier_nets)
             l += loss.item()
             l1 += loss1.item()
@@ -142,7 +141,7 @@ def main():
     net = JNDNet()
     net.to(device)
     loss_fn = Loss()
-    optimizer = torch.optim.Adam(net.parameters(),lr=1e-4,weight_decay=1e-3)
+    optimizer = torch.optim.Adam(net.parameters(),lr=1e-5,weight_decay=1e-3)
     dataloader = get_dataloader(batch_size=64,task="dmv-jnd")
     total_epochs = 3
     train(net,classifier_nets,dataloader,loss_fn,optimizer,device,total_epochs)
