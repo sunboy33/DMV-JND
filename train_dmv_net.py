@@ -100,7 +100,7 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,total_epochs):
             e = net(x,c)
             x_hat = torch.clamp(x+e, min=-1.0, max=1.0)
             optimizer.zero_grad()
-            loss,loss1,loss2,loss3 = loss_fn(x,x_hat,c,e)
+            loss,loss1,loss2,loss3 = loss_fn(x,x_hat,c,e,classifier_nets)
             l += loss
             l1 += loss1
             l2 += loss2
