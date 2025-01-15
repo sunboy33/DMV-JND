@@ -8,11 +8,22 @@ from tqdm import tqdm
 import numpy as np
 from skimage.metrics import peak_signal_noise_ratio
 from PIL import Image
+import argparse
 
 from models import JNDNet
 from loss import Loss
 from datasets import get_dataloader
 
+
+def get_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--lr',type=float,default=1e-5,help="")
+    parser.add_argument('--batch_size',type=int,help="")
+    parser.add_argument('--num_workers',type=int,default=2,help="")
+    parser.add_argument('--weight_decay',type=float,default=1e-3,help="")
+    parser.add_argument('--total_epochs',type=int,default=200,help="")
+    parser.add_argument('--net_types',type=list,default=["alexnet-GAP","vgg16-GAP","resnet50-GAP","densenet169-GAP"],help="")
+    return parser.parse_args()
 
 
 def get_cam(x,classifier_nets,device):
@@ -46,7 +57,7 @@ def denormalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
 def visualization(x,x_hat,e,c,epoch):
     def save(tensor,epoch,type):
         if type == "c":
-            tensor_grid = make_grid(tensor[:16].cpu(),pad_value=1).numpy()
+            tensor_grid = make_grid(tensor[:16].cpu()).numpy()
             Image.fromarray(np.array(tensor_grid[0] * 255,dtype=np.uint8)).save(f"{save_path}/{epoch}_{type}.png")
         else:
             tensor_grid = make_grid(denormalize(tensor[:16].cpu())).numpy()
@@ -64,10 +75,9 @@ def visualization(x,x_hat,e,c,epoch):
 
 
 def cal_psnr(net,classifier_nets,dataloader,device):
-    print("计算PSNR...")
     psnr = []
     with torch.no_grad():
-        for (x, _) in dataloader:
+        for (x, _) in tqdm(dataloader,desc="PSNR"):
             x = x.to(device)
             c = get_cam(x,classifier_nets,device)
             e = net(x,c)
@@ -78,14 +88,13 @@ def cal_psnr(net,classifier_nets,dataloader,device):
     return sum(psnr) / len(psnr)
 
 def cal_rca(net,classifier_nets,dataloader,device):
-    print("计算RCA...")
     n_sample = len(dataloader.dataset)
     rca = []
     with torch.no_grad():
         for net_type in classifier_nets.keys():
             count = 0
             classifier_net = classifier_nets[net_type]
-            for (x, _) in dataloader:
+            for (x, _) in tqdm(dataloader,desc=f"{net_type} RCA"):
                 x = x.to(device)
                 c = get_cam(x,classifier_nets,device)
                 e = net(x,c)
@@ -126,13 +135,13 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,total_epochs):
 
 
 def main():
+    args = get_parser()
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     classifier_nets = {}
     net_path = "ckpts"
-    net_types = ["alexnet-GAP","vgg16-GAP","resnet50-GAP","densenet169-GAP"]
-    # net_types = ["alexnet-GAP"]
+    # net_types = ["alexnet-GAP","vgg16-GAP","resnet50-GAP","densenet169-GAP"]
     nets = os.listdir(net_path)
-    for net_type in net_types:
+    for net_type in args.net_types:
         model_name = [n for n in nets if n.startswith(net_type)][0]
         net = torch.load(f=f"{net_path}/{model_name}",map_location="cpu")
         net.eval()
@@ -141,10 +150,9 @@ def main():
     net = JNDNet()
     net.to(device)
     loss_fn = Loss()
-    optimizer = torch.optim.Adam(net.parameters(),lr=1e-5,weight_decay=1e-3)
-    dataloader = get_dataloader(batch_size=32,task="dmv-jnd")
-    total_epochs = 3
-    train(net,classifier_nets,dataloader,loss_fn,optimizer,device,total_epochs)
+    optimizer = torch.optim.Adam(net.parameters(),lr=args.lr,weight_decay=args.weight_decay)
+    dataloader = get_dataloader(batch_size=args.batch_size,num_workers=args.num_workers,task="dmv-jnd")
+    train(net,classifier_nets,dataloader,loss_fn,optimizer,device,args.total_epochs)
     
 
 if __name__== "__main__":
