@@ -29,7 +29,7 @@ def get_cam(x,classifier_nets,device):
             weights = weights[pre].unsqueeze(1)
             heat = torch.bmm(weights,f_map_reshape)
             heat = heat.reshape(f_map.shape[0], 1, f_map.shape[-1], f_map.shape[-1])
-            heat = torch.nn.functional.interpolate(heat, size=(32, 32), model="bilinear", align_corners=False)
+            heat = torch.nn.functional.interpolate(heat, size=(32, 32), mode="bilinear", align_corners=False)
             min_val = heat.min(dim=2, keepdim=True)[0].min(dim=3,keepdim=True)[0]
             max_val = heat.max(dim=2, keepdim=True)[0].max(dim=3,keepdim=True)[0]
             heats += (heat - min_val) / (max_val - min_val)
