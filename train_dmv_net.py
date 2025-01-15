@@ -46,7 +46,7 @@ def denormalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
 def visualization(x,x_hat,e,c,epoch):
     def save(tensor,epoch,type):
         if type == "c":
-            tensor_grid = make_grid(denormalize(tensor[:16].cpu()),pad_value=255).numpy()
+            tensor_grid = make_grid(tensor[:16].cpu(),pad_value=1).numpy()
             Image.fromarray(np.array(tensor_grid[0] * 255,dtype=np.uint8)).save(f"{save_path}/{epoch}_{type}.png")
         else:
             tensor_grid = make_grid(denormalize(tensor[:16].cpu())).numpy()
