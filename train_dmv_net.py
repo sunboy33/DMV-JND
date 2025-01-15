@@ -142,7 +142,7 @@ def main():
     net.to(device)
     loss_fn = Loss()
     optimizer = torch.optim.Adam(net.parameters(),lr=1e-5,weight_decay=1e-3)
-    dataloader = get_dataloader(batch_size=64,task="dmv-jnd")
+    dataloader = get_dataloader(batch_size=32,task="dmv-jnd")
     total_epochs = 3
     train(net,classifier_nets,dataloader,loss_fn,optimizer,device,total_epochs)
     
