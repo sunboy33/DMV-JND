@@ -59,10 +59,10 @@ def denormalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
 def visualization(x,x_hat,e,c,epoch):
     def save(tensor,epoch,type):
         if type == "c":
-            tensor_grid = make_grid(tensor[:16].cpu()).numpy()
+            tensor_grid = make_grid(tensor[:24].cpu()).numpy()
             Image.fromarray(np.array(tensor_grid[0] * 255,dtype=np.uint8)).save(f"{save_path}/{epoch}_{type}.png")
         else:
-            tensor_grid = make_grid(denormalize(tensor[:16].cpu())).numpy()
+            tensor_grid = make_grid(denormalize(tensor[:24].cpu())).numpy()
             Image.fromarray(np.array(tensor_grid.transpose(1, 2, 0) * 255,dtype=np.uint8)).save(f"{save_path}/{epoch}_{type}.png")
     save_path = "temp"
     if not os.path.exists(save_path):
