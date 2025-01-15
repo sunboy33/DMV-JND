@@ -64,8 +64,8 @@ def cal_psnr(net,classifier_nets,dataloader,device):
             c = get_cam(x,classifier_nets,device)
             e = net(x,c)
             x_hat = torch.clamp(x+e, min=-1.0, max=1.0)
-            x = (denormalize(x).cpu().numpy() * 255).astype(np.uint8)
-            x_hat = (denormalize(x_hat).cpu().numpy * 255).astype(np.uint8)
+            x = (denormalize(x.cpu()).numpy() * 255).astype(np.uint8)
+            x_hat = (denormalize(x_hat.cpu()).numpy() * 255).astype(np.uint8)
             psnr.append(peak_signal_noise_ratio(x,x_hat))
     return sum(psnr) / len(psnr)
 
