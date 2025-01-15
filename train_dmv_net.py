@@ -101,10 +101,10 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,total_epochs):
             x_hat = torch.clamp(x+e, min=-1.0, max=1.0)
             optimizer.zero_grad()
             loss,loss1,loss2,loss3 = loss_fn(x,x_hat,c,e,classifier_nets)
-            l += loss
-            l1 += loss1
-            l2 += loss2
-            l3 += loss3
+            l += loss.item()
+            l1 += loss1.item()
+            l2 += loss2.item()
+            l3 += loss3.item()
             loss.backward()
             optimizer.step()
         psnr = cal_psnr(net,classifier_nets,dataloader["train"],device)
