@@ -136,6 +136,9 @@ def main():
     dataloader = get_dataloader(batch_size=64,task="dmv-jnd")
     total_epochs = 3
     train(net,classifier_nets,dataloader,loss_fn,optimizer,device,total_epochs)
-        
+    
+
+if __name__== "__main__":
+    main()
     
 
