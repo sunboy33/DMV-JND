@@ -53,7 +53,7 @@ def train(net,dataloader,loss_fn,optimizer,net_type,device,total_epochs):
 def main():
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     num_classes = 10
-    dataloader = get_dataloader(batch_size=128,num_workers=4,task="cls",worker_init_fn=None)
+    dataloader = get_dataloader(batch_size=128,num_workers=4,task="classify",worker_init_fn=None)
     loss_fn = torch.nn.CrossEntropyLoss()
     # net_types = ["alexnet-GAP","vgg16-GAP","resnet50-GAP","densenet169-GAP"]
     net_types = ["mobilenet-GAP"]
