@@ -3,7 +3,6 @@ import torchvision.models as models
 import torch
 
 
-
 class AlexNet(nn.Module):
     def __init__(self, nums_classes):
         super().__init__()
@@ -60,6 +59,19 @@ class DenseNet169(nn.Module):
         x = self.classifier(x)
         return x
 
+class MobileNet(nn.Module):
+    def __init__(self, nums_classes):
+        super().__init__()
+        self.features = nn.Sequential(*list(models.mobilenet_v2(weights=models.MobileNetV2.IMAGENET1K_V1).features.children())[:-3])
+        self.classifier = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(1280, nums_classes))
+    
+    def forward(self,x):
+        x = self.features(x)
+        x = x.mean(dim=(2,3))
+        x = self.classifier(x)
+        return x
 
 def get_net(net_type,num_classes):
     if net_type=="alexnet-GAP":
@@ -70,8 +82,10 @@ def get_net(net_type,num_classes):
         net = ResNet50(num_classes)
     elif net_type=="densenet169-GAP":
         net = DenseNet169(num_classes)
+    elif net_type=="mobilenet-GAP":
+        net = MobileNet(num_classes)
     else:
-        raise ValueError("net_type must be [`alexnet-GAP`,`vgg16-GAP`,`resnet50-GAP`,`densenet169-GAP`]")
+        raise ValueError("net_type must be [`alexnet-GAP`,`vgg16-GAP`,`resnet50-GAP`,`densenet169-GAP`,`mobilenet-GAP`]")
     return net
 
 
@@ -81,7 +95,7 @@ def get_net(net_type,num_classes):
 
 
 if __name__ == "__main__":
-    net = DenseNet169(10)
+    net = MobileNet(10)
     x = torch.randn(size=(32,3,224,224))
     y = net(x)
     print(y.shape)
