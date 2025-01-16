@@ -92,6 +92,7 @@ def cal_psnr(net,classifier_nets,dataloader,device):
 def cal_rca(net,classifier_nets,dataloader,device):
     n_sample = len(dataloader.dataset)
     rca = []
+    d = {}
     with torch.no_grad():
         for net_type in classifier_nets.keys():
             count = 0
@@ -105,7 +106,8 @@ def cal_rca(net,classifier_nets,dataloader,device):
                 Ln_hat = classifier_net(x_hat).argmax(dim=1)
                 count += (Ln==Ln_hat).sum().item()
             rca.append(count / n_sample)
-    return sum(rca) / len(rca)
+            d[net_type] = count / n_sample
+    return d["alexnet-GAP"],d["vgg16-GAP"],d["resnet50-GAP"],d["mobilenet-GAP"],sum(rca) / len(rca)
            
 
 def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,start_epoch,total_epochs):
@@ -116,7 +118,7 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,start_epoch,to
     except FileNotFoundError:
         wb = openpyxl.Workbook()
         sheet = wb.active
-        sheet.append(['epoch', 'loss',"loss1","loss2","loss3","PSNR","RCA"])  # 添加表头
+        sheet.append(['epoch', 'loss',"loss1","loss2","loss3","PSNR","RCA","alexnet-RCA","vgg-RCA","resnet-RCA","mobilenet-RCA"])  # 添加表头
     n = len(dataloader["train"])
     for epoch in range(start_epoch,total_epochs+1):
         net.train()
@@ -135,11 +137,11 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,start_epoch,to
             loss.backward()
             optimizer.step()
         psnr = cal_psnr(net,classifier_nets,dataloader["train"],device)
-        rca = cal_rca(net,classifier_nets,dataloader["train"],device)
+        r1,r2,r3,r4,rca = cal_rca(net,classifier_nets,dataloader["train"],device)
         print(f"[Epoch{epoch}/{total_epochs}][loss:{l/n:.3f} loss1:{l1/n:.3f} loss2:{l2/n:.3f} loss3:{l3/n:.3f} psnr:{psnr:.3f} RCA:{rca:.3f}]")
-        sheet.append([epoch, l/n, l1/n, l2/n, l3/n, psnr, rca])
+        sheet.append([epoch, l/n, l1/n, l2/n, l3/n, psnr, rca,r1,r2,r3,r4])
         wb.save(file_path)
-        if epoch in [1,2,3,15,45,145]:
+        if epoch in [1,3,15,45,145]:
             visualization(x,x_hat,e,c,epoch)
         torch.save(net,f"ckpts/dmv-jnd-{epoch}.pth")
         if os.path.exists(f"ckpts/dmv-jnd-{epoch-1}.pth"):
