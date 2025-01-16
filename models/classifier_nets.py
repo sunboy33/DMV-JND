@@ -62,7 +62,7 @@ class DenseNet169(nn.Module):
 class MobileNet(nn.Module):
     def __init__(self, nums_classes):
         super().__init__()
-        self.features = nn.Sequential(*list(models.mobilenet_v2(pretrained=True).features.children()))
+        self.features = nn.Sequential(*list(models.mobilenet_v2(weights=models.MobileNet_V2_Weights.IMAGENET1K_V1).features.children()))
         self.classifier = nn.Sequential(
             nn.Dropout(),
             nn.Linear(1280, nums_classes))
