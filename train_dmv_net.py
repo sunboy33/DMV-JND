@@ -5,6 +5,7 @@ import numpy as np
 import openpyxl
 import torch
 import torch.nn.functional
+import torch_xla.core.xla_model as xm
 from torchvision import transforms
 from torchvision.utils import make_grid
 from tqdm import tqdm
@@ -24,6 +25,7 @@ def get_parser():
     parser.add_argument('--weight_decay',type=float,default=1e-3)
     parser.add_argument('--total_epochs',type=int,default=200)
     parser.add_argument('--net_types',type=str,nargs='*',default="alexnet-GAP")
+    parser.add_argument('--tpu',type=bool,default=False)
     return parser.parse_args()
 
 args = get_parser()
@@ -168,7 +170,10 @@ def find_file_with_prefix(directory, prefix):
 
 def main():
     set_seed(args.seed)
-    device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+    if args.tpu:
+        device = device = xm.xla_device()
+    else:
+        device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     classifier_nets = {}
     net_path = "ckpts"
     nets = os.listdir(net_path)
