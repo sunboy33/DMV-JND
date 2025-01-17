@@ -129,7 +129,7 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,start_epoch,to
             x = x.to(device)
             c = get_cam(x,classifier_nets,device)
             e = net(x,c)
-            if i == 0 and epoch in [1,3,15,45,145,200]:
+            if i==0 and (epoch==1 or epoch%5 == 0):
                 visualization(x,e,c,epoch)
             x_hat = torch.clamp(x+e, min=-1.0, max=1.0)
             optimizer.zero_grad()
@@ -194,7 +194,7 @@ def main():
     net.to(device)
     loss_fn = Loss(alpha=args.alpha,beta=args.beta)
     optimizer = torch.optim.Adam(net.parameters(),lr=args.lr,weight_decay=args.weight_decay)
-    dataloader = get_dataloader(batch_size=args.batch_size,num_workers=args.num_workers,task="dmv-jnd",worker_init_fn=worker_init_fn)
+    dataloader = get_dataloader(batch_size=args.batch_size,num_workers=args.num_workers,task="dmv-jnd",worker_init_fn=None)
     train(net,classifier_nets,dataloader,loss_fn,optimizer,device,start_epoch,args.total_epochs)
     
 
