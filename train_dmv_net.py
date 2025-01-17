@@ -5,7 +5,6 @@ import numpy as np
 import openpyxl
 import torch
 import torch.nn.functional
-import torch_xla.core.xla_model as xm
 from torchvision import transforms
 from torchvision.utils import make_grid
 from tqdm import tqdm
@@ -25,7 +24,8 @@ def get_parser():
     parser.add_argument('--weight_decay',type=float,default=1e-3)
     parser.add_argument('--total_epochs',type=int,default=200)
     parser.add_argument('--net_types',type=str,nargs='*',default="alexnet-GAP")
-    parser.add_argument('--tpu',type=bool,default=False)
+    parser.add_argument('--alpha',type=float,default=1.0)
+    parser.add_argument('--beta',type=float,default=1.0)
     return parser.parse_args()
 
 args = get_parser()
@@ -58,7 +58,7 @@ def denormalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     denormalized = tensor * std_tensor + mean_tensor
     return denormalized
 
-def visualization(x,x_hat,e,c,epoch):
+def visualization(x,e,c,epoch):
     def save(tensor,epoch,type):
         if type == "c":
             tensor_grid = make_grid(tensor[:24].cpu()).numpy()
@@ -70,9 +70,9 @@ def visualization(x,x_hat,e,c,epoch):
     if not os.path.exists(save_path):
         os.mkdir(save_path)
     with torch.no_grad():
-        save(x,epoch,"x")
-        save(x_hat,epoch,"x_hat")
         e = torch.abs(e)
+        save(x,epoch,"x")
+        save(torch.clamp(x+e, min=-1.0, max=1.0),epoch,"x_hat")
         save(e,epoch,"e")
         save(c,epoch,"c")
         
@@ -125,10 +125,12 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,start_epoch,to
     for epoch in range(start_epoch,total_epochs+1):
         net.train()
         l,l1,l2,l3 = 0.0,0.0,0.0,0.0
-        for (x, _) in tqdm(dataloader["train"]):
+        for i,(x, _) in enumerate(tqdm(dataloader["train"])):
             x = x.to(device)
             c = get_cam(x,classifier_nets,device)
             e = net(x,c)
+            if i == 0 and epoch in [1,3,15,45,145,200]:
+                visualization(x,e,c,epoch)
             x_hat = torch.clamp(x+e, min=-1.0, max=1.0)
             optimizer.zero_grad()
             loss,loss1,loss2,loss3 = loss_fn(x,x_hat,c,e,classifier_nets)
@@ -138,16 +140,16 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,start_epoch,to
             l3 += loss3.item()
             loss.backward()
             optimizer.step()
+        torch.save(net,f"ckpts/dmv-jnd-{epoch}.pth")
+        if os.path.exists(f"ckpts/dmv-jnd-{epoch-1}.pth"):
+            os.remove(f"ckpts/dmv-jnd-{epoch-1}.pth")
         psnr = cal_psnr(net,classifier_nets,dataloader["train"],device)
         r1,r2,r3,r4,rca = cal_rca(net,classifier_nets,dataloader["train"],device)
         print(f"[Epoch{epoch}/{total_epochs}][loss:{l/n:.3f} loss1:{l1/n:.3f} loss2:{l2/n:.3f} loss3:{l3/n:.3f} psnr:{psnr:.3f} RCA:{rca:.3f}]")
         sheet.append([epoch, l/n, l1/n, l2/n, l3/n, psnr, rca,r1,r2,r3,r4])
         wb.save(file_path)
-        if epoch in [1,3,15,45,145]:
-            visualization(x,x_hat,e,c,epoch)
-        torch.save(net,f"ckpts/dmv-jnd-{epoch}.pth")
-        if os.path.exists(f"ckpts/dmv-jnd-{epoch-1}.pth"):
-            os.remove(f"ckpts/dmv-jnd-{epoch-1}.pth")
+        
+        
 
 
 def set_seed(seed):
@@ -170,10 +172,7 @@ def find_file_with_prefix(directory, prefix):
 
 def main():
     set_seed(args.seed)
-    if args.tpu:
-        device = device = xm.xla_device()
-    else:
-        device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     classifier_nets = {}
     net_path = "ckpts"
     nets = os.listdir(net_path)
@@ -193,7 +192,7 @@ def main():
         print(f"pretrained model exists, start epoch with {start_epoch}")
         net = torch.load(f=f"{net_path}/{filename}",map_location="cpu")
     net.to(device)
-    loss_fn = Loss()
+    loss_fn = Loss(alpha=args.alpha,beta=args.beta)
     optimizer = torch.optim.Adam(net.parameters(),lr=args.lr,weight_decay=args.weight_decay)
     dataloader = get_dataloader(batch_size=args.batch_size,num_workers=args.num_workers,task="dmv-jnd",worker_init_fn=worker_init_fn)
     train(net,classifier_nets,dataloader,loss_fn,optimizer,device,start_epoch,args.total_epochs)

@@ -5,9 +5,11 @@ import torch.nn.functional as F
 
 
 class Loss(nn.Module):
-    def __init__(self):
+    def __init__(self,alpha=1.0,beta=1.0):
         super().__init__()
         self.ce = nn.CrossEntropyLoss()
+        self.alpha = alpha
+        self.beta = beta
     
 
     def loss1(self,x,x_hat,classifier_nets):
@@ -45,9 +47,8 @@ class Loss(nn.Module):
 
 
     def forward(self,x,x_hat,c,e,classifier_nets):
-        alpha,beta = 1.0,1.0
         loss1 = self.loss1(x,x_hat,classifier_nets)
-        loss2 = self.loss2(c,e)
-        loss3 = self.loss3(c,e)
-        loss = loss1 + alpha * loss2 + beta * loss3
+        loss2 = self.alpha * self.loss2(c,e)
+        loss3 = self.beta * self.loss3(c,e)
+        loss = loss1 + loss2 + loss3
         return loss,loss1,loss2,loss3
