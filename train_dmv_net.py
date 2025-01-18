@@ -26,6 +26,8 @@ def get_parser():
     parser.add_argument('--net_types',type=str,nargs='*',default="alexnet-GAP")
     parser.add_argument('--alpha',type=float,default=1.0)
     parser.add_argument('--beta',type=float,default=1.0)
+    parser.add_argument('--log_per_epoch',type=int,default=50)
+
     return parser.parse_args()
 
 args = get_parser()
@@ -129,7 +131,7 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,start_epoch,to
             x = x.to(device)
             c = get_cam(x,classifier_nets,device)
             e = net(x,c)
-            if i==0 and (epoch==1 or epoch%5 == 0):
+            if i==0 and (epoch==1 or epoch%15 == 0):
                 visualization(x,e,c,epoch)
             x_hat = torch.clamp(x+e, min=-1.0, max=1.0)
             optimizer.zero_grad()
@@ -140,14 +142,15 @@ def train(net,classifier_nets,dataloader,loss_fn,optimizer,device,start_epoch,to
             l3 += loss3.item()
             loss.backward()
             optimizer.step()
+        if epoch==1 or epoch%args.log_per_epoch==0:
+            psnr = cal_psnr(net,classifier_nets,dataloader["train"],device)
+            r1,r2,r3,r4,rca = cal_rca(net,classifier_nets,dataloader["train"],device)
+            print(f"[Epoch{epoch}/{total_epochs}][loss:{l/n:.3f} loss1:{l1/n:.3f} loss2:{l2/n:.3f} loss3:{l3/n:.3f} psnr:{psnr:.3f} RCA:{rca:.3f}]")
+            sheet.append([epoch, l/n, l1/n, l2/n, l3/n, psnr, rca,r1,r2,r3,r4])
+            wb.save(file_path)
         torch.save(net,f"ckpts/dmv-jnd-{epoch}.pth")
         if os.path.exists(f"ckpts/dmv-jnd-{epoch-1}.pth"):
             os.remove(f"ckpts/dmv-jnd-{epoch-1}.pth")
-        psnr = cal_psnr(net,classifier_nets,dataloader["train"],device)
-        r1,r2,r3,r4,rca = cal_rca(net,classifier_nets,dataloader["train"],device)
-        print(f"[Epoch{epoch}/{total_epochs}][loss:{l/n:.3f} loss1:{l1/n:.3f} loss2:{l2/n:.3f} loss3:{l3/n:.3f} psnr:{psnr:.3f} RCA:{rca:.3f}]")
-        sheet.append([epoch, l/n, l1/n, l2/n, l3/n, psnr, rca,r1,r2,r3,r4])
-        wb.save(file_path)
         
         
 
